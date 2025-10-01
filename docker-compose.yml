@@ -1,0 +1,132 @@
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: mydatabase
+    volumes:
+      - ./postgres/data:/var/lib/postgresql/data
+      - ./postgres/init:/docker-entrypoint-initdb.d
+
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres", "-d", "mydatabase"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "-h", "127.0.0.1", "ping"]
+      interval: 10s
+      retries: 5
+      start_period: 30s
+      timeout: 10s
+
+  smtp4dev:
+    image: rnwood/smtp4dev:v3
+    restart: always
+    ports:
+      - '5000:80'
+      - '25:25'
+      - '143:143'
+    volumes:
+      - smtp4dev-data:/smtp4dev
+  
+  locust_master:
+    image: locustio/locust
+    container_name: locust
+    ports:
+      - "8089:8089"
+    volumes:
+      - ./backend/locust:/mnt/locust
+    command: -f /mnt/locust/locustfile.py
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile.dev
+    container_name: backend
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      SQLALCHEMY_DATABASE_URL: postgresql://postgres:postgres@db:5432/mydatabase
+      JWT_ALGORITHM: "HS256"
+      JWT_SECRET_KEY: "..."
+      JWT_EXPIRATION_MINUTES: 30
+      REDIS_URL: redis://redis:6379/0
+      PYTHONPATH: /usr/src/backend
+    ports:
+      - "8000:8000"
+    command: bash -c "fastapi dev main.py --host 0.0.0.0 --port 8000"
+    volumes:
+      - ./backend:/usr/src/backend
+
+
+  celery_worker:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile.dev
+    container_name: celery_worker
+    depends_on:
+      redis:
+        condition: service_healthy
+      db:
+        condition: service_healthy
+    environment:
+      SQLALCHEMY_DATABASE_URL: postgresql://postgres:postgres@db:5432/mydatabase
+      REDIS_URL: redis://redis:6379
+    command: bash -c 'celery -A core.celery_conf worker --loglevel=info'
+    volumes:
+      - ./core:/usr/src/core
+
+  celery_beat:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile.dev
+    container_name: celery_beat
+    depends_on:
+      redis:
+        condition: service_healthy
+      db:
+        condition: service_healthy
+    environment:
+      SQLALCHEMY_DATABASE_URL: postgresql://postgres:postgres@db:5432/mydatabase
+      REDIS_URL: redis://redis:6379
+    command: bash -c 'celery -A core.celery_conf beat --loglevel=info'
+    volumes:
+      - ./core:/usr/src/core
+
+  flower:
+    image: mher/flower:0.9.7
+    container_name: flower
+    command: ['flower', '--broker=redis://redis:6379/0', '--port=5555']
+    ports:
+      - "5555:5555"
+    depends_on:
+      - redis
+
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: frontend
+    ports:
+      - "3000:80"
+
+
+volumes:
+  smtp4dev-data:

@@ -1,0 +1,31 @@
+# FROM python:3.11-slim
+
+# WORKDIR /usr/src/backend
+
+# COPY backend/requirements.txt .
+
+# RUN pip install --no-cache-dir --upgrade -r requirements.txt
+
+# COPY backend ./ 
+
+# ENV PYTHONPATH=/usr/src
+
+# # CMD ["fastapi", "dev", "main.py", "--host", "0.0.0.0", "--port", "8000"]
+
+
+
+
+FROM python:3.11-slim
+
+# Set WORKDIR inside container to /usr/src/backend
+WORKDIR /usr/src/backend
+
+# Copy backend folder contents
+COPY backend/ ./ 
+
+# Install requirements
+COPY backend/requirements.txt .
+RUN pip install --no-cache-dir --upgrade -r requirements.txt
+
+# PYTHONPATH points to current WORKDIR's parent, so tasks/ is importable directly
+ENV PYTHONPATH=/usr/src/backend
