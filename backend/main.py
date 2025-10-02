@@ -400,3 +400,4 @@ async def test_send_mail():
 #     result = AsyncResult(task_id).ready()
 #     return JSONResponse(content={"result":result})
 
+#salam
