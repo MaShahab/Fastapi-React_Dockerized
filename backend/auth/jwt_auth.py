@@ -6,7 +6,9 @@ from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 import jwt
 from jwt.exceptions import DecodeError, InvalidSignatureError
-from core.config import settings
+
+from core.config import get_settings
+settings = get_settings()
 
 security = HTTPBearer(auto_error=False)
 

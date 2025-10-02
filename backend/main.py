@@ -25,8 +25,10 @@ tags_metadata = [
 import redis.asyncio as redis
 from fastapi_cache import FastAPICache
 from fastapi_cache.backends.redis import RedisBackend
-from core.config import settings   # your Pydantic Settings
+# from core.config import settings   # your Pydantic Settings
 
+from core.config import get_settings
+settings = get_settings()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -383,18 +385,18 @@ async def test_send_mail():
 #     return JSONResponse(content={"detail":"task is done"})
 
 
-from core.celery_tasks import add  # <-- import from inner core
-from celery.result import AsyncResult
+# from core.celery_tasks import add  # <-- import from inner core
+# from celery.result import AsyncResult
 
-app = FastAPI()
+# app = FastAPI()
 
-@app.get("/add/")
-def call_add(x: int, y: int):
-    task = add.delay(x, y)
-    return {"task_id": task.id, "status": "submitted"}
+# @app.get("/add/")
+# def call_add(x: int, y: int):
+#     task = add.delay(x, y)
+#     return {"task_id": task.id, "status": "submitted"}
 
-@app.get("/check-celery-task-result", status_code=200)
-async def initiate_celery_task(task_id:str):
-    result = AsyncResult(task_id).ready()
-    return JSONResponse(content={"result":result})
+# @app.get("/check-celery-task-result", status_code=200)
+# async def initiate_celery_task(task_id:str):
+#     result = AsyncResult(task_id).ready()
+#     return JSONResponse(content={"result":result})
 

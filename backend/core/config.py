@@ -1,5 +1,8 @@
-from pydantic_settings import BaseSettings, SettingsConfigDict
+# backend/core/config.py
+
 import os
+from pydantic_settings import BaseSettings, SettingsConfigDict
+from functools import lru_cache
 
 class Settings(BaseSettings):
     SQLALCHEMY_DATABASE_URL: str
@@ -18,13 +21,13 @@ class Settings(BaseSettings):
     MAIL_SSL_TLS: bool = False
     USE_CREDENTIALS: bool = False
 
-    CELERY_BROKER_URL : str = "redis://redis:6379/3" 
-    CELERY_BACKEND_URL : str = "redis://redis:6379/3" 
+    CELERY_BROKER_URL: str = "redis://redis:6379/3"
+    CELERY_BACKEND_URL: str = "redis://redis:6379/3"
 
-    model_config = SettingsConfigDict(env_file=".env")
+    model_config = SettingsConfigDict(
+        env_file=".env.test" if os.getenv("ENV") == "test" else ".env"
+    )
 
-    # class Config:
-    #     env_file = ".env" if os.getenv("ENV") != "test" else ".env.test"
-
-
-settings = Settings()
+@lru_cache()
+def get_settings() -> Settings:
+    return Settings()

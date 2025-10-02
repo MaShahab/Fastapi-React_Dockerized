@@ -1,3 +1,6 @@
+import os
+os.environ["ENV"] = "test"
+
 from fastapi.testclient import TestClient
 from sqlalchemy import StaticPool
 from core.database import Base, create_engine, sessionmaker, get_db
